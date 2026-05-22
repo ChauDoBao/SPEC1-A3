@@ -151,7 +151,7 @@ function setup() {
         if (bgMusic && bgMusic.isPlaying()) { // Checks if background music is currently playing
           bgMusic.fade(0, 1.5); // Smoothly fades the music volume to 0 over 1.5 seconds
 setTimeout(() => {
-           window.location.href = "chau.html";
+           window.location.href = "my.html";
          }, 1500);        }
       }
     });
