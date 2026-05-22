@@ -10,7 +10,7 @@ let pulses = [];
 let bokehParticles = [];  
 
 // --- 2. UI & STATE CONTROL ---
-let appState = "INTRO";   
+let appState = "READY"; // <-- Changed to READY
 let artAlpha = 0;         
 let homeHover = false;    
 let nextHover = false;    
@@ -30,13 +30,20 @@ let connectionDistance = 180;
 
 let homeImg;        
 let soundOnImg, soundOffImg; 
-let energyOut = 0;        
+let energyOut = 0;       
+
+// Audio State Variables
+let artMusicStarted = false; 
+let isNavigatingHome = false;
+let hasIntroSoundPlayed = false; // NEW: Lock to ensure intro plays only once
+
 
 // Sound Variables
 let soundHover = false; 
 let isMuted = false;    
 let sliderSound; 
-
+let introSound;
+let clickSound;
 let flowSound;
 let sourceSound;
 let fundSound;
@@ -79,8 +86,9 @@ function preload() {
   fundSound = loadSound("Funding.wav");
   techSound = loadSound("Technology.wav");
   knowSound = loadSound("Knowledge.wav");
-  
-  bgMusic = loadSound("backgroundtaiyo.wav"); // Uncomment and add your filename here
+    introSound = loadSound("transition-provide.wav"); 
+clickSound = loadSound("click.wav");
+  bgMusic = loadSound("backgroundtaiyo.wav"); 
 }
 
 function updateUILayout() {
@@ -124,18 +132,31 @@ function setup() {
     });
   }
 
-  let nextBtn = select('#next-btn');
-  if (nextBtn) {
-    nextBtn.mousePressed((e) => {
-      e.preventDefault(); 
+  let nextBtn = select('#next-btn'); // Uses p5 DOM to grab the HTML button by its ID
+  if (nextBtn) {           // Checks if the HTML button actually exists on the page
+    nextBtn.mousePressed((e) => { // Attaches a click event listener to the HTML button
+      e.preventDefault();  // Prevents the browser's default link-click behavior (jumping to top)
+      e.stopPropagation(); // Stops the click event from passing through to the p5 canvas underneath
+
       if (appState === "ART") {
-        appState = "OUTRO";
-        let footer = select('#dynamic-footer');
-        if (footer) footer.removeClass('show-now');
+        if (clickSound && clickSound.isLoaded()) {
+            clickSound.setVolume(0.5); // Adjust volume as needed
+            clickSound.play();
+        }
+        appState = "OUTRO";     // Changes the global state to trigger the outro animation
+        outroAlpha = 0;         // Resets the outro fade-in opacity to 0
+        let footer = select('#dynamic-footer'); // Grabs the HTML footer element
+        if (footer) footer.removeClass('show-now'); // Hides the HTML footer
+
+        if (bgMusic && bgMusic.isPlaying()) { // Checks if background music is currently playing
+          bgMusic.fade(0, 1.5); // Smoothly fades the music volume to 0 over 1.5 seconds
+setTimeout(() => {
+           window.location.href = "chau.html";
+         }, 1500);        }
       }
     });
   }
-  
+
   initInitialNetwork();
 }
 
@@ -156,15 +177,24 @@ function displayInstruction(textStr, duration = 5000) {
 function draw() {
   background(4, 6, 12); 
 
-  if (appState === "INTRO") { 
+  if (appState === "READY") {
+    drawReadyScreen();
+  } else if (appState === "INTRO") { 
     drawIntro(); 
-  } 
+  }
   else if (appState === "ART") {
+    
     let footer = select("#dynamic-footer");
     if (footer && !footer.hasClass("show-now")) {
       footer.addClass("show-now");
     }
-    
+      if (!artMusicStarted && bgMusic && bgMusic.isLoaded() && getAudioContext().state === 'running') {
+        bgMusic.setVolume(0); 
+        bgMusic.loop();       
+        bgMusic.fade(0.3, 2); 
+        artMusicStarted = true; 
+    }
+
     if (!introSequenceStarted) {
       introSequenceStarted = true;
       
@@ -233,10 +263,8 @@ function draw() {
     }
   }
   
-  if (appState !== "INTRO") {
-    drawHomeButton();    
-    drawSoundButton(); 
-  }
+   drawHomeButton(); 
+  drawSoundButton();
 }
 
 // --- 4. NETWORK LOGIC ---
@@ -663,15 +691,66 @@ function drawSoundButton() {
   pop();
 }
 
+function drawReadyScreen() {
+  // 1. MATCH THE MOBILE BREAKPOINT
+  let isMobile = width < 600; 
+  let fontSize = isMobile ? 32 : 80;
+
+  // 2. MATCH THE FONT EXACTLY
+  textFont("new-science-extended");
+  textSize(fontSize);
+  textStyle(BOLD);
+  drawingContext.font = `700 ${fontSize}px new-science-extended, serif`;
+
+  fill(255, 50); // Set your ghosted opacity here
+
+  // 3. MATCH THE LAYOUT EXACTLY
+  if (isMobile) {
+    // Two-line layout for mobile
+    let txtStage = "STAGE 0: ";
+    let topWidth = textWidth(txtStage);
+    let startX = width / 2 - topWidth / 2;
+    
+    textAlign(LEFT, CENTER);
+    text(txtStage, startX, height / 2 - 25);
+    
+    textAlign(CENTER, CENTER);
+    text("START", width / 2, height / 2 + 25);
+  } else {
+    // Single-line layout for desktop
+    textAlign(CENTER, CENTER);
+    text("STAGE 0: START", width / 2, height / 2);
+  }
+
+  // Draw the "Click to Start" Instruction
+  textAlign(CENTER, CENTER);
+  textFont("mulish-variable");
+  textSize(isMobile ? 14 : 18);
+  fill(255, 150 + sin(frameCount * 0.1) * 50); 
+  // Pushed down slightly (80) to account for the two-line title on mobile
+  text("(Click anywhere to allow sounds)", width / 2, height / 2 + 80);
+}
+
 function drawIntro() {
-  push();
+  // --- NEW: AUTO-PLAY INTRO SOUND ---
+  if (introSound && introSound.isLoaded() && !hasIntroSoundPlayed) {
+      introSound.setVolume(0.5);
+      
+      // Delay the playback by 200 milliseconds (0.2 seconds)
+      setTimeout(() => {
+          introSound.play(); 
+      }, 1300);
+      
+      hasIntroSoundPlayed = true; 
+  }
+
   let isMobile = width < 600;
   let fontSize = isMobile ? 32 : 80;
 
-  textFont("new-spirit");
+  textFont("new-science-extended");
   textSize(fontSize);
   textStyle(BOLD);
-  drawingContext.font = `700 ${fontSize}px new-spirit, serif`;
+  drawingContext.font = `700 ${fontSize}px new-science-extended, sans-serif`;
   noStroke();
 
   let txtStage = "STAGE ";
@@ -726,6 +805,11 @@ function drawIntro() {
       introAlpha -= 5;
       morphAlpha = introAlpha;
       if (introAlpha <= 0) appState = "ART";
+      // --- NEW: FADE OUT INTRO SOUND ---
+          if (introSound && introSound.isPlaying()) {
+              introSound.fade(0, 1); // Fade to 0 over 1 second
+              setTimeout(() => introSound.stop(), 1000); // Stop playing after fade
+          }
     }
   }
 }
@@ -862,6 +946,14 @@ function drawSoftCircle(x, y, r, c) {
 }
 
 function mousePressed() {
+
+  // If we are waiting for user interaction to start the app...
+  if (appState === "READY") {
+    userStartAudio();
+    appState = "INTRO"; // Transition to your existing intro animation
+    return;
+  }
+
   if (getAudioContext().state !== 'running') {
     userStartAudio();
   }
@@ -871,18 +963,49 @@ function mousePressed() {
     bgMusic.loop();         
   }
 
-  if (soundHover) {
-    isMuted = !isMuted;
+if (soundHover) {
+    isMuted = !isMuted; // Toggle the state first
+
     if (isMuted) {
-      outputVolume(0); 
+      // 1. We are MUTING. Play the click sound first.
+      if (clickSound && clickSound.isLoaded()) clickSound.play();
+      
+      // 2. Wait 1000 milliseconds for the click to finish, then pull the master mute switch.
+      setTimeout(() => {
+        if (isMuted) outputVolume(0); // Double-check it wasn't unmuted during the delay
+      }, 600); 
+      
     } else {
+      // 1. We are UNMUTING. Turn the master switch back on first.
       outputVolume(1); 
+      
+      // 2. Now play the click sound so we can actually hear it.
+      if (clickSound && clickSound.isLoaded()) clickSound.play();
     }
+    
     return; 
   }
   
-  if (homeHover) window.location.href = "index.html"; 
-}
+if (homeHover) {
+    if (!isNavigatingHome) {
+      isNavigatingHome = true;
+      
+      // 1. Play the click sound immediately
+      if (clickSound && clickSound.isLoaded() && !isMuted) {
+          clickSound.play();
+      }
+
+      // 2. Fade out the background music
+      if (bgMusic && bgMusic.isPlaying()) bgMusic.fade(0, 1);
+      if (introSound && introSound.isPlaying()) introSound.fade(0, 1);
+      
+      // 3. Wait exactly 1 second for the fade to finish before jumping
+      setTimeout(() => {
+        window.location.href = "index.html"; 
+      }, 600);
+    }
+    return; 
+  }}
 
 function mouseReleased() { activeSlider = null; }
 
