@@ -4,386 +4,363 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/addons/p5.sound.min.js"></script>
     <link rel="stylesheet" href="https://use.typekit.net/iwq3dmy.css" />
+    <link rel="stylesheet" href="https://use.typekit.net/wza6swk.css">
 
     <style>
+      /* --- GLOBAL RESET & STRICT TYPOGRAPHY SYSTEM --- */
       * { box-sizing: border-box; }
 
       body {
-        margin: 0; padding: 0; background: #04040c;
-        overflow-x: hidden; overflow-y: auto;
+        margin: 0; padding: 0; 
+        background: #04040c;
+        overflow-x: hidden; 
+        overflow-y: auto;
+        
+        /* The Reading Font: Mulish Only */
+        font-family: "mulish", sans-serif;
+        font-weight: 400;
+        font-size: 16px;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.85);
+      }
+
+      /* The Structural Font: New Science Extended Only */
+      h1, h2, h3, .heading-font {
+        font-family: "new-science-extended", sans-serif;
+        font-weight: 700;
+        color: #ffffff;
+        margin: 0;
+      }
+
+      strong {
+        font-weight: 700;
+        color: #ffffff;
+      }
+
+      /* Sizing Hierarchy */
+      .text-hero    { font-size: clamp(32px, 4vw, 48px); line-height: 1.2; text-transform: none; }
+      .text-section { font-size: clamp(24px, 3vw, 32px); text-transform: uppercase; letter-spacing: 2px; }
+      .text-card    { font-size: 14px; text-transform: uppercase; letter-spacing: 1.5px; }
+      .text-quote   { font-size: clamp(20px, 2.5vw, 24px); font-style: italic; color: #ffffff; line-height: 1.4; }
+      .text-small   { font-size: 14px; color: rgba(255, 255, 255, 0.6); margin: 0; }
+
+      /* --- START SCREEN --- */
+      #start-screen {
+        position: fixed; top: 0; left: 0;
+        width: 100vw; height: 100vh;
+        background-color: #04040c;
+        z-index: 9999;
+        display: flex; justify-content: center; align-items: center;
+        cursor: pointer; transition: opacity 0.6s ease-in-out;
+      }
+      #start-text { animation: pulse 2s infinite; font-size: 18px; }
+      @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+
+      /* --- HERO SECTION --- */
+      .hero-section {
         display: flex; flex-direction: column;
-        min-height: 100vh; width: 100vw;
+        height: 100vh; width: 100vw;
+        position: relative; z-index: 5;
+        pointer-events: none;
       }
 
       .header-layout {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 32px 60px;
-        z-index: 1000;
-        width: 100%;
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 32px 60px; z-index: 1000; width: 100%;
+        pointer-events: auto;
       }
 
-      .logo-text {
-        font-family: "new-spirit", serif;
-        font-weight: 700;
-        color: #ffffff;
-        font-size: 22px;
-        margin: 0;
-      }
-
-      #menu-icon { cursor: pointer; }
-      .bar { width: 25px; height: 2px; background-color: white; margin: 5px 0; }
+      .logo-wrapper { display: flex; align-items: center; gap: 12px; }
+      .logo-img { height: 32px; width: auto; display: block; }
+      .logo-text { font-size: 20px; text-transform: none; }
 
       .master-container {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 5;
+        flex: 1; display: flex; align-items: center; justify-content: center;
         padding: 0 60px;
-        pointer-events: none;
       }
 
       .content-layout {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: center;
-        gap: 80px;
-        pointer-events: none;
-        width: 100%;
-        max-width: 1400px;
+        display: flex; flex-direction: row; align-items: center; justify-content: center;
+        gap: 80px; width: 100%; max-width: 1400px;
       }
 
-      #visual-target { position: relative; pointer-events: none; }
-
-      #info-box {
-        position: relative;
-        width: 100%;
-        max-width: 600px;
-        background: none;
-        border: none;
-        backdrop-filter: none;
-        pointer-events: auto;
-        z-index: 20;
-      }
-
-      #info-title {
-        font-family: "new-spirit", serif;
-        font-weight: 700;
-        color: #ffffff;
-        font-size: clamp(28px, 5vw, 48px);
-        line-height: 1.3;
-        margin: 0 0 26px 0;
-        text-transform: none;
-        white-space: normal;
-      }
-
-      #info-body {
-        font-family: "mulish", sans-serif;
-        color: rgba(255, 255, 255, 0.8);
-        font-size: clamp(14px, 1.5vw, 16px);
-        line-height: 1.5;
-        max-width: 540px;
-        font-weight: 400;
-      }
-
-      strong { color: rgba(255, 255, 255, 1); font-weight: 700; }
+      #visual-target { position: relative; }
+      #info-box { position: relative; width: 100%; max-width: 600px; pointer-events: auto; }
       
-      ul { 
-        padding-left: 20px; 
-        margin: 0; 
-      }
-      li {
-        margin-top: 6px;
-      }
+      #info-title { margin-bottom: 24px; }
+      #info-body { max-width: 540px; }
 
-      .footer-quote {
-        width: 100%;
-        text-align: center;
-        padding: 40px 20px;
-        z-index: 10;
-        margin-top: auto;
+      /* Research Notes injected by JS */
+      .research-notes {
+        margin-top: 24px; padding-top: 20px;
+        border-top: 1px dashed rgba(255, 255, 255, 0.2);
+        font-size: 14px; color: rgba(255, 255, 255, 0.6);
       }
 
-      .quote-text {
-        font-family: "mulish", sans-serif;
-        font-style: italic;
-        color: rgba(255,255,255,0.8);
-        font-size: clamp(13px, 1.4vw, 15px);
-        margin: 0;
-        line-height: 1.4;
-      }
-
-      .quote-author {
-        font-family: "mulish", sans-serif;
-        color: rgba(255,255,255,0.6);
-        font-size: 13px;
-        margin-top: 8px;
-        display: block;
-      }
-
-      /* --- SIDE PANEL RE-DESIGN --- */
-      #side-panel {
-        height: 100%; width: 500px; position: fixed; z-index: 2000;
-        top: 0; right: -500px; background-color: rgba(4, 4, 12, 0.98);
-        backdrop-filter: blur(20px); overflow-y: auto;
-        transition: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        border-left: 1px solid rgba(255, 255, 255, 0.1);
-      }
-
-      #side-panel.open { right: 0; }
-
-      .panel-content { padding: 40px 45px; }
-
-      .panel-header-container {
+      /* --- SCROLL INDICATOR --- */
+      .scroll-indicator {
+        position: absolute;
+        bottom: 20px; /* Moved lower on desktop */
+        left: 50%;
+        transform: translateX(-50%);
         display: flex;
-        justify-content: space-between;
+        flex-direction: column;
         align-items: center;
-        margin-bottom: 32px;
-      }
-
-      .panel-header {
-        letter-spacing: 2px;
-        margin: 0;
-      }
-
-      #close-btn {
-        font-size: 42px;
+        gap: 8px;
         color: white;
+        opacity: 0.5;
         cursor: pointer;
-        opacity: 0.6;
-        line-height: 1;
+        pointer-events: auto;
+        transition: opacity 0.3s;
+        animation: floatBounce 2.5s infinite ease-in-out;
       }
-      #close-btn:hover { opacity: 1; }
+      .scroll-indicator:hover { opacity: 1; }
+      .scroll-indicator .text-small { letter-spacing: 2px; }
 
-      .section { margin-bottom: 45px; }
-
-      .font-section-title {
-        font-family: "new-spirit", serif;
-        font-weight: 700;
-        color: #ffffff;
-        text-transform: uppercase;
-        letter-spacing: 1.5px;
-        font-size: clamp(16px, 1.8vw, 20px);
-        margin-bottom: 12px;
+      @keyframes floatBounce {
+        0%, 100% { transform: translate(-50%, 0); }
+        50% { transform: translate(-50%, 8px); }
       }
 
-      .font-title {
-        font-family: "new-spirit", serif;
-        font-weight: 700;
-        color: #ffffff;
-        text-transform: uppercase;
-        font-size: clamp(22px, 5vw, 32px);
-        margin: 0;
+      /* --- ABOUT SECTION --- */
+      .about-section {
+        position: relative; z-index: 10; background: transparent;
+        padding: 100px 20px 160px; pointer-events: auto;
       }
 
-      .font-body {
-        font-family: "mulish", sans-serif;
-        font-size: clamp(12px, 1.5vw, 16px);
-        line-height: 1.5;
-        color: rgba(255, 255, 255, 0.8);
+      .about-container {
+        max-width: 860px; margin: 0 auto;
+        display: flex; flex-direction: column; gap: 120px;
       }
 
-      .italic-block {
-        font-style: italic;
-        color: rgba(255, 255, 255, 0.7);
-        padding-left: 18px;
-        border-left: 1.5px solid rgba(255, 255, 255, 0.2);
-        margin: 15px 0;
+      .section-block { display: flex; flex-direction: column; align-items: center; }
+
+      .section-title-wrapper {
+        position: relative; margin-bottom: 60px; text-align: center;
+      }
+      .section-title-wrapper::after {
+        content: ""; position: absolute;
+        bottom: -20px; left: 50%; transform: translateX(-50%);
+        width: 60px; height: 2px; background-color: #5175B9;
       }
 
-      .metadata {
-        padding-top: 32px;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-        font-size: 13px;
-        opacity: 0.6;
+      /* Team Grid */
+      .team-grid {
+        display: flex; justify-content: center; flex-wrap: wrap;
+        gap: 20px; width: 100%; margin-top: 16px;
       }
-      
-    .logo-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 8px; 
-    }
 
-    .logo-img {
-      height: 32px; 
-      width: auto;
-      display: block;
-    }
+      .team-member {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 24px 32px; border-radius: 8px;
+        text-align: center; flex: 1; min-width: 220px;
+        transition: transform 0.3s ease, background 0.3s ease;
+      }
 
+      .team-member:hover { transform: translateY(-5px); background: rgba(255, 255, 255, 0.06); }
+      .team-member-name { display: block; margin-bottom: 8px; }
+
+      /* Quote Block */
+      .chosen-quote-block { text-align: center; max-width: 700px; }
+      .chosen-quote-block p { margin: 0; }
+      .chosen-quote-block .text-quote { margin-top: 48px; margin-bottom: 12px; }
+
+      /* Narrative & Roles */
+      .narrative-text { text-align: left; width: 100%; }
+
+      .role-grid {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 24px; margin: 40px 0;
+      }
+
+      .role-card {
+        background: rgba(255, 255, 255, 0.02);
+        padding: 30px; border-radius: 6px; border-top: 3px solid;
+      }
+      .role-card.devg { border-color: #2FE197; }
+      .role-card.ldcs { border-color: #FF3C3C; }
+      .role-card.dev { border-color: #5175B9; }
+      .role-title { margin-bottom: 12px; display: block; color: rgba(255,255,255,0.9); }
+
+      /* --- FOOTER --- */
+      .site-footer {
+        background: #020206; border-top: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 60px; position: relative; z-index: 10;
+      }
+
+      .footer-container {
+        max-width: 1200px; margin: 0 auto;
+        display: flex; justify-content: space-between; align-items: flex-start;
+        gap: 40px; flex-wrap: wrap;
+      }
+
+      .footer-quote { max-width: 400px; text-align: center; }
+      .footer-quote p { font-style: italic; margin-bottom: 8px; }
+      .footer-meta { text-align: right; }
+      .footer-meta p { margin: 0; }
+
+      /* --- MOBILE RESPONSIVENESS --- */
       @media (max-width: 850px) {
         .header-layout { padding: 28px 20px; }
-        .content-layout { flex-direction: column; gap: 50px; text-align: center; }
-        #info-body { margin: 0 auto; }
-        .master-container { padding: 20px; flex: none; min-height: auto; }
-        .footer-quote { padding: 40px 20px; position: relative; }
-        #side-panel { width: 100%; right: -100%; }
-        .panel-content { padding: 30px 25px; }
+        .content-layout { 
+          flex-direction: column; 
+          gap: 40px; 
+          text-align: center; /* Centered layout for mobile */ 
+        }
+        .master-container { padding: 20px; flex: none; min-height: auto; margin-top: 8vh; }
+        
+        #info-body { margin: 0 auto; } /* Ensures the paragraph block is centered */
+
+        .about-section { padding: 80px 20px; }
+        .footer-container { flex-direction: column; align-items: center; text-align: center; }
+        .footer-meta { text-align: center; }
+        .scroll-indicator { bottom: 10px; } /* Moved lower on mobile */
       }
 
-      canvas { position: fixed; top: 0; left: 0; z-index: 1; }
+      canvas { position: fixed; top: 0; left: 0; z-index: 1; pointer-events: auto; }
     </style>
   </head>
   <body>
     
-    <!-- AUDIO ELEMENT WITH AUTOPLAY -->
-    <audio id="bg-music" autoplay loop>
-      <source src="backgroundlanding.wav" type="audio/wav" />
-    </audio>
+    <div id="start-screen" onclick="startExperience()">
+      <div id="start-text">(Click anywhere to allow sounds)</div>
+    </div>
 
-    <header class="header-layout">
-     <div class="logo-wrapper">
-        <img src="logo.png" alt="Logo" class="logo-img" />
-        <div class="logo-text">Connect & Share</div>
-      </div>
-      <div id="menu-icon" onclick="toggleSidebar()">
-        <div class="bar"></div>
-        <div class="bar"></div>
-        <div class="bar"></div>
-      </div>
-    </header>
+    <div class="hero-section">
+      <header class="header-layout">
+        <div class="logo-wrapper">
+          <img src="logo.png" alt="Logo" class="logo-img" />
+          <div class="logo-text heading-font">Connect & Share</div>
+        </div>
+      </header>
 
-    <div class="master-container">
-      <div class="content-layout">
-        <div id="visual-target"></div>
-        <div id="info-box">
-          <h1 id="info-title">Connect 2 partners<br />Share 1 solution</h1>
-          <p id="info-body">
-            <span
-              >In front of you is a dynamic triangle with each corner
-              representing a different voice in global collaboration:
-              <strong>Developed Countries, Developing Countries,</strong> and
-              <strong>Least Developed Countries.</strong>
-            </span>
+      <div class="master-container">
+        <div class="content-layout">
+          <div id="visual-target"></div>
+          <div id="info-box">
+            <h1 id="info-title" class="heading-font text-hero">Connect 2 partners<br />Share 1 solution</h1>
+            <p id="info-body">
+              <span>In front of you is a dynamic triangle with each corner representing a different voice in global collaboration:
+              <strong>Developed Countries, Developing Countries,</strong> and <strong>Least Developed Countries.</strong></span>
+              <br /><br />
+              Let's interact with the triangles to explore the generative artworks and see how <strong>triangle partnership connect and share solutions.</strong>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="scroll-indicator" onclick="document.getElementById('about').scrollIntoView({ behavior: 'smooth' })">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </div>
+    </div>
+
+    <section id="about" class="about-section">
+      <div class="about-container">
+        
+        <div class="section-block">
+          <div class="section-title-wrapper">
+            <h2 class="heading-font text-section">About the Team</h2>
+          </div>
+          <p class="text-small">Group: Đại Đại</p>
+          <div class="team-grid">
+            <div class="team-member">
+              <span class="team-member-name heading-font text-card">Do Bao Chau</span>
+              <span class="text-small">s4023727</span>
+            </div>
+            <div class="team-member">
+              <span class="team-member-name heading-font text-card">Truong Nguyen Kieu My</span>
+              <span class="text-small">s4037623</span>
+            </div>
+            <div class="team-member">
+              <span class="team-member-name heading-font text-card">Nguyen Hoai Nam</span>
+              <span class="text-small">s3977831</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-block">
+          <div class="section-title-wrapper">
+            <h2 class="heading-font text-section">Chosen Topic & Quote</h2>
+          </div>
+          <div class="chosen-quote-block">
+            <p>
+              <strong>SDG 17: Partnerships for the Goals</strong><br>
+              <span class="text-small">"Strengthen the means of implementation and revitalize the Global Partnership for Sustainable Development."</span>
+            </p>
+            <p class="text-quote">
+              "Great things in business are never done by one person; they're done by a team of people."
+            </p>
+            <p class="text-small">
+              — Steve Jobs (2003) 60 Minutes Archive
+            </p>
+          </div>
+        </div>
+
+        <div class="section-block">
+          <div class="section-title-wrapper">
+            <h2 class="heading-font text-section">Project Narrative</h2>
+          </div>
+          <div class="narrative-text">
+            Steve Jobs once said, <strong>"Great things in business are never done by one person; they're done by a team of people."</strong> This idea reflects the core of <strong>SDG 17: Partnerships for the Goals</strong> and its <strong>Target 17.16: Global Partnership for Sustainable Development</strong>, which emphasizes that global challenges can only be solved through cooperation. 
             <br /><br />
-            Let's interact with the triangles to explore the generative artworks
-            and see how
-            <strong>triangle partnership connect and share solutions.</strong>
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <footer class="footer-quote">
-      <p class="quote-text">
-        “Great things in business are never done by one person; they're done by a team of people."
-      </p>
-      <span class="quote-author">by Steve Jobs (2003)</span>
-    </footer>
-    
-    <div id="side-panel">
-      <div class="panel-content">
-        <!-- HEADER ROW -->
-        <div class="panel-header-container">
-          <h2 class="panel-header font-title">Information</h2>
-          <div id="close-btn" onclick="toggleSidebar()">&times;</div>
-        </div>
-
-        <!-- TEAM SECTION -->
-        <div class="section">
-          <div class="font-body">
-            <p style="margin-bottom: 10px;"><strong>Group:</strong> Đại Đại</p>
-            <strong>Members:</strong>
-            <ul
-              style="padding-left: 20px; margin-top: 5px;"
-            >
-              <li style="margin-bottom: 5px;">Do Bao Chau_s4023727</li>
-              <li style="margin-bottom: 5px;">
-                Truong Nguyen Kieu My_s4037623
-              </li>
-              <li>Nguyen Hoai Nam_s3977831</li>
-            </ul>
-          </div>
-        </div>
-
-        <!-- TOPIC SECTION -->
-        <div class="section">
-          <h3 class="font-section-title">Chosen Topic</h3>
-          <p class="font-body">
-            <strong>SDG 17: Partnerships for the Goals</strong><br />
-          </p>
-          <p
-            class="italic-block font-body"
-            style="color: rgba(255, 255, 255, 0.9);"
-          >
-            "Strengthen the means of implementation and revitalize the Global
-            Partnership for Sustainable Development."
-          </p>
-        </div>
-
-        <!-- QUOTE SECTION -->
-        <div class="section">
-          <h3 class="font-section-title">Chosen Quote</h3>
-          <p
-            class="italic-block font-body"
-            style="color: rgba(255, 255, 255, 0.9);"
-          >
-            "Great things in business are never done by one person; they're done by a team of people."
-          </p>
-          <p class="font-body" style="font-size: 13px; opacity: 0.7;">
-            Steve Jobs (2003) 60 Minutes Archive [2025], Steve Jobs on being inspired by the Beatles | 60 Minutes Archive, streaming video, YouTube, accessed 24 March 2026.
-            <a
-              href="https://youtu.be/vydmUCGQnyI?si=JFI5i2cd-J3_PBHG"
-              target="_blank"
-              style="color: #5175B9;"
-              >Source Link</a
-            >
-          </p>
-        </div>
-
-        <!-- NARRATIVE SECTION -->
-        <div class="section">
-          <h3 class="font-section-title">Paragraph</h3>
-          <div class="font-body">
-            Steve Jobs once said,
-            <span><strong>"
-            "Great things in business are never done by one person; they're done by a team of people."</strong></span>
-            This idea reflects the core of <strong>SDG 17: Partnerships for the Goals</strong>
-            and its <strong>Target 17.16: Global Partnership for Sustainable Development</strong>, which emphasizes that global challenges can only be solved through cooperation. Today’s data shows how ignoring global interdependence can lead to economic and social consequences. Recent reports from the United Nations Department of Economic and Social Affairs highlight slowing global economic growth and a $4 trillion annual gap in SDG financing, while around 800 million people remain in extreme poverty, all demonstrate that no country can succeed alone. <br /><br />
+            Today’s data shows how ignoring global interdependence can lead to economic and social consequences. Recent reports from the United Nations highlight slowing global economic growth and a $4 trillion annual gap in SDG financing, demonstrating that no country can succeed alone. 
+            <br /><br />
             One practical solution is <strong>triangular partnerships</strong>:
-            <ul>
-              <li>
-                <strong>Developing countries</strong>
-                <strong>share </strong> proven technology-based solutions such as digital platforms and low-cost innovations and experience;
-              </li>
-              <li>
-                <strong>Least developed countries</strong
-                ><strong> adapt </strong> these tools to their local
-                infrastructure, workforce capacity, and environmental
-                conditions;
-              </li>
-              <li>
-                <strong>Developed countries</strong>
-                <strong>provide</strong> funding, advanced technologies like AI
-                and satellite systems, as well as technical expertise to ensure
-                effective implementation.
-              </li>
-            </ul>
-            <br />
-            To take part in this idea, we suggest connecting with two
-            international peers, hosting a short online discussion, and
-            co-creating one simple, low-cost solution that can be implemented
-            within a week to address a shared local challenge in the community.
+            
+            <div class="role-grid">
+              <div class="role-card devg">
+                <span class="role-title heading-font text-card">Developing Countries</span>
+                <p><strong>Share</strong> proven technology-based solutions such as digital platforms and low-cost innovations.</p>
+              </div>
+              <div class="role-card ldcs">
+                <span class="role-title heading-font text-card">Least Developed (LDCs)</span>
+                <p><strong>Adapt</strong> these tools to their local infrastructure, workforce capacity, and environmental conditions.</p>
+              </div>
+              <div class="role-card dev">
+                <span class="role-title heading-font text-card">Developed Countries</span>
+                <p><strong>Provide</strong> funding, advanced technologies like AI and satellite systems, and technical expertise.</p>
+              </div>
+            </div>
+
+            To take part in this idea, we suggest connecting with two international peers, hosting a short online discussion, and co-creating one simple, low-cost solution that can be implemented within a week to address a shared local challenge.
           </div>
         </div>
 
-        <!-- FOOTER METADATA -->
-        <div class="section metadata font-body">
-          <p>Course: COMM2754 Digital Media Specialisation</p>
-          <p>Affiliation: RMIT University Vietnam</p>
-          <p>Date: May 22, 2026</p>
-        </div>
       </div>
-    </div>
+    </section>
+
+    <footer class="site-footer">
+      <div class="footer-container">
+        
+        <div class="logo-wrapper">
+          <img src="logo.png" alt="Logo" class="logo-img" />
+          <div class="logo-text heading-font">Connect & Share</div>
+        </div>
+
+        <div class="footer-quote">
+          <p class="text-small" style="font-style: italic;">“Great things in business are never done by one person; they're done by a team of people."</p>
+          <span class="text-small">Steve Jobs (2003) 60 Minutes Archive</span>
+        </div>
+
+        <div class="footer-meta text-small">
+          <p>COMM2754 Digital Media Specialisation</p>
+          <p>RMIT University Vietnam</p>
+          <p>May 22, 2026</p>
+        </div>
+
+      </div>
+    </footer>
 
     <script>
         let triangles = [];
         let connectionDots = [];
         let networkNodes = [];
-        let bokehParticles = []; // Added Bokeh Array
+        let bokehParticles = []; 
         
         let zoomTarget = { x: 0, y: 0, s: 1 };
         let zoomCurrent = { x: 0, y: 0, s: 1 };
@@ -391,14 +368,23 @@
         let focusedTriangle = null;
         const SQRT3_2 = 0.866025;
         let defaultTitle, defaultBody;
-        let audioStarted = false;
-      document.addEventListener('click', function() {
-        if (!audioStarted) {
-          let bgMusic = document.getElementById("bg-music");
-          bgMusic.play();
-          audioStarted = true;
+        
+        let hasStarted = false;
+        let isMuted = false;
+        let soundHover = false;
+        
+        let soundOnImg, soundOffImg;
+        let bgMusic, blueAudio, redAudio, greenAudio, clickAudio;
+
+        function preload() {
+          soundOnImg = loadImage('sound-on.png');
+          soundOffImg = loadImage('sound-off.png');
+          bgMusic = loadSound('backgroundlanding.wav');
+          blueAudio = loadSound('background-blue.wav');
+          redAudio = loadSound('background-red.wav');
+          greenAudio = loadSound('background-green.wav');
+          clickAudio = loadSound('click.wav'); 
         }
-      }, { once: true });
 
         function setup() {
           createCanvas(windowWidth, windowHeight);
@@ -409,8 +395,6 @@
 
         function initSystem() {
           triangles = [];
-          
-          // Added Bokeh Initialization
           bokehParticles = [];
           for (let i = 0; i < 12; i++) {
             bokehParticles.push({
@@ -457,10 +441,26 @@
           createDottedPath(vGreen.bottomR, vBlue.bottomL);
         }
 
-        function draw() {
-          background(4, 4, 12);
+        function startExperience() {
+          if (hasStarted) return;
+          hasStarted = true;
           
-          // Added Bokeh Drawing Layer (Stays fixed in background)
+          let overlay = document.getElementById('start-screen');
+          overlay.style.opacity = '0';
+          setTimeout(() => { overlay.style.display = 'none'; }, 600);
+
+          bgMusic.loop(); bgMusic.setVolume(1);
+          blueAudio.loop(); blueAudio.setVolume(0);
+          redAudio.loop(); redAudio.setVolume(0);
+          greenAudio.loop(); greenAudio.setVolume(0);
+        }
+
+        function draw() {
+          if (!hasStarted) return;
+
+          clear(); 
+          let currentScroll = window.scrollY || document.documentElement.scrollTop;
+
           push();
           blendMode(ADD);
           noStroke();
@@ -476,13 +476,16 @@
           zoomCurrent.s = lerp(zoomCurrent.s, zoomTarget.s, 0.1);
 
           let mx = (mouseX - zoomCurrent.x) / zoomCurrent.s;
-          let my = (mouseY - zoomCurrent.y) / zoomCurrent.s;
+          let my = (mouseY + currentScroll - zoomCurrent.y) / zoomCurrent.s;
           let anyoneHovered = false;
 
           push();
+          translate(0, -currentScroll); 
           translate(zoomCurrent.x, zoomCurrent.y);
           scale(zoomCurrent.s);
+          
           if (!isZoomed) drawDataFlow();
+          
           triangles.forEach(t => {
             if (isZoomed && t !== focusedTriangle) return;
             let d = dist(mx, my, t.x, t.y);
@@ -491,8 +494,36 @@
             drawVectorBlurShape(t);
             if (isZoomed && focusedTriangle === t && t.hoverF > 0.5) drawLinkHint(t);
           });
-          if (anyoneHovered) cursor(HAND); else cursor(ARROW);
+          
           if (isZoomed && focusedTriangle) drawNeuralNetwork(focusedTriangle);
+          pop();
+
+          drawSoundButton();
+
+          let aboutRect = document.getElementById('about').getBoundingClientRect();
+          let isHoveringHTML = mouseY >= aboutRect.top;
+          
+          if ((soundHover || anyoneHovered) && !isHoveringHTML) {
+              cursor(HAND); 
+          } else {
+              cursor(ARROW);
+          }
+        }
+
+        function drawSoundButton() {
+          let isMobile = windowWidth < 850;
+          let size = isMobile ? 24 : 32;
+          let marginX = isMobile ? 25 : 60;
+          let y = isMobile ? 32 : 32;
+          let x = width - marginX - size;
+
+          soundHover = mouseX > x && mouseX < x + size && mouseY > y && mouseY < y + size;
+
+          push();
+          if (soundHover) tint(255, 255); else tint(255, 120);
+
+          let currentImg = isMuted ? soundOffImg : soundOnImg;
+          if (currentImg) image(currentImg, x, y, size, size);
           pop();
         }
 
@@ -576,35 +607,94 @@
         }
 
         function updateUI() {
-        let titleEl = document.getElementById('info-title');
-        let bodyEl = document.getElementById('info-body');
+          let titleEl = document.getElementById('info-title');
+          let bodyEl = document.getElementById('info-body');
 
-        if (isZoomed && focusedTriangle) {
-          titleEl.innerText = focusedTriangle.id;
+          if (isZoomed && focusedTriangle) {
+            titleEl.innerText = focusedTriangle.id;
 
-          if (focusedTriangle.id === 'Developed Countries') {
-            bodyEl.innerHTML = "<strong>Provide</strong> funding, advanced technologies such as AI and satellite systems, and technical expertise to support effective implementation and long-term impact.";
+            if (focusedTriangle.id === 'Developed Countries') {
+              bodyEl.innerHTML = 
+                "<strong>Provide</strong> funding, advanced technologies such as AI and satellite systems, and technical expertise to support effective implementation and long-term impact." +
+                "<div class='research-notes text-small'>" +
+                  "<strong>Research Support</strong><br>" +
+                  "Organizations like the World Bank highlight how these resources are essential to closing the global development gap. " +
+                  "Technologies such as AI and satellite systems enable large-scale solutions, from disaster prediction to climate monitoring. " +
+                  "This aligns with our project’s idea that developed countries act as the main providers that make global implementation possible." +
+                "</div>";
+            }
+            else if (focusedTriangle.id === 'Developing Countries') {
+              bodyEl.innerHTML = 
+                "<strong>Share</strong> proven technology-based solutions, including digital platforms, affordable innovations, and practical experiences, to help communities and organizations solve social and environmental problems more effectively." +
+                "<div class='research-notes text-small'>" +
+                  "<strong>Research Support</strong><br>" +
+                  "The Organisation for Economic Co-operation and Development notes that many innovations from these regions are designed to work under real-world constraints. " +
+                  "Examples like mobile banking and telemedicine show how digital platforms can effectively solve social problems. " +
+                  "As our document suggests, these countries act as a bridge—turning advanced ideas into practical applications that others can adopt." +
+                "</div>";
+            }
+            else if (focusedTriangle.id === 'Least Developed Countries') {
+              bodyEl.innerHTML = 
+                "<strong>Adapt</strong> these tools to fit local infrastructure, workforce capacity, and environmental conditions for more practical and sustainable use." +
+                "<div class='research-notes text-small'>" +
+                  "<strong>Research Support</strong><br>" +
+                  "The United Nations emphasizes that this step is critical for long-term sustainability. " +
+                  "Rather than simply receiving solutions, they modify and apply them in ways that work locally, such as off-grid energy systems or small-scale farming tools. " +
+                  "This reflects our project’s idea that adaptation ensures solutions are practical and lasting." +
+                "</div>";
+            }
           }
-          else if (focusedTriangle.id === 'Developing Countries') {
-            bodyEl.innerHTML = "<strong>Share</strong> proven technology-based solutions, including digital platforms, affordable innovations, and practical experiences, to help communities and organizations solve social and environmental problems more effectively.";
-          }
-          else if (focusedTriangle.id === 'Least Developed Countries') {
-            bodyEl.innerHTML = "<strong>Adapt</strong> these tools to fit local infrastructure, workforce capacity, and environmental conditions for more practical and sustainable use.";
+          else {
+            titleEl.innerHTML = defaultTitle;
+            bodyEl.innerHTML = defaultBody;
           }
         }
-        else {
-          titleEl.innerHTML = defaultTitle;
-          bodyEl.innerHTML = defaultBody;
-        }
-      }
 
+        function updateAudioStates(clickedTriangle) {
+          let fadeTime = 1.0; 
+          let targetVol = isMuted ? 0 : 1; 
+
+          if (!clickedTriangle) {
+            blueAudio.fade(0, fadeTime);
+            redAudio.fade(0, fadeTime);
+            greenAudio.fade(0, fadeTime);
+          } else {
+            if (clickedTriangle.id === 'Developed Countries') {
+              blueAudio.fade(targetVol, fadeTime);
+              redAudio.fade(0, fadeTime);
+              greenAudio.fade(0, fadeTime);
+            } else if (clickedTriangle.id === 'Developing Countries') {
+              greenAudio.fade(targetVol, fadeTime);
+              redAudio.fade(0, fadeTime);
+              blueAudio.fade(0, fadeTime);
+            } else if (clickedTriangle.id === 'Least Developed Countries') {
+              redAudio.fade(targetVol, fadeTime);
+              greenAudio.fade(0, fadeTime);
+              blueAudio.fade(0, fadeTime);
+            }
+          }
+        }
 
         function mousePressed() {
+          if (!hasStarted) return; 
+
+          if (soundHover) {
+            isMuted = !isMuted;
+            outputVolume(isMuted ? 0 : 1, 0.1); 
+            if (!isMuted && clickAudio) clickAudio.play(); 
+            return;
+          }
+
+          let aboutRect = document.getElementById('about').getBoundingClientRect();
+          if (mouseY >= aboutRect.top) return;
+
           let boxRect = document.getElementById('info-box').getBoundingClientRect();
           if (mouseX >= boxRect.left && mouseX <= boxRect.right && mouseY >= boxRect.top && mouseY <= boxRect.bottom) return;
 
+          let currentScroll = window.scrollY || document.documentElement.scrollTop;
           let mx = (mouseX - zoomCurrent.x) / zoomCurrent.s;
-          let my = (mouseY - zoomCurrent.y) / zoomCurrent.s;
+          let my = (mouseY + currentScroll - zoomCurrent.y) / zoomCurrent.s;
+          
           let clicked = null;
           triangles.forEach(t => { if (dist(mx, my, t.x, t.y) < t.side * 0.9) clicked = t; });
 
@@ -613,11 +703,8 @@
             focusedTriangle = clicked; isZoomed = true;
             generateSpreadNetwork(clicked);
 
-            // NEW SCALING LOGIC: Specifically make the blue triangle (Developed Countries) smaller on zoom
             let scaleFactor = (windowWidth < 850) ? 1.5 : 1.9;
-            if (clicked.id === 'Developed Countries') {
-                scaleFactor = (windowWidth < 850) ? 1.4 : 1.4;
-            }
+            if (clicked.id === 'Developed Countries') scaleFactor = 1.4;
             zoomTarget.s = scaleFactor;
 
             if (windowWidth < 850) {
@@ -627,8 +714,14 @@
                 zoomTarget.x = (width * 0.32) - (clicked.x * zoomTarget.s);
                 zoomTarget.y = (height / 2) - (clicked.y * zoomTarget.s);
             }
+            updateAudioStates(clicked);
           } else {
-            isZoomed = false; focusedTriangle = null; zoomTarget.s = 1; zoomTarget.x = 0; zoomTarget.y = 0;
+            isZoomed = false; 
+            focusedTriangle = null; 
+            zoomTarget.s = 1; 
+            zoomTarget.x = 0; 
+            zoomTarget.y = 0;
+            updateAudioStates(null);
           }
           updateUI();
         }
@@ -641,10 +734,9 @@
         }
 
         function drawLinkHint(t) { push(); textAlign(CENTER); textFont("mulish"); textSize(8); fill(255, t.hoverF * 255); noStroke(); text("CLICK TO EXPLORE", t.x, t.y + t.side * 0.7); pop(); }
-        function toggleSidebar() { document.getElementById("side-panel").classList.toggle("open"); }
+        
         function windowResized() { resizeCanvas(windowWidth, windowHeight); initSystem(); }
 
-        // Added Soft Circle Helper
         function drawSoftCircle(x, y, r, c) {
           let cl = color(c);
           let g = drawingContext.createRadialGradient(x, y, 0, x, y, r);
