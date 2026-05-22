@@ -11,13 +11,13 @@ Google n.d., Google AI Studio [large language model], Google, viewed 27 March 20
 */
 
 let nodes = [];
+let hubMatureSound;
 let bokehParticles = [];
 let pulses = [];
 let hubs = [];
 let hubCycleTimer = 0;
 
-// State and UI
-let appState = "INTRO";
+let appState = "READY"; 
 let introAlpha = 255;
 let artAlpha = 0;
 let homeHover = false;
@@ -37,6 +37,11 @@ let introStage = 1;
 let targetY, slideY;
 let morphAlpha = 255;
 
+let artMusicStarted = false; 
+let isNavigatingHome = false;
+let hasIntroSoundPlayed = false; 
+
+
 let homeImg;
 let soundOnImg, soundOffImg;
 let clickSound,
@@ -44,17 +49,17 @@ let clickSound,
   progressSound,
   completeSound,
   sliderUpSound,
-  sliderDownSound;
+  sliderDownSound,
+  introSound;
 let bgMusic;
+let navClickSound; 
 
-// --- RESPONSIVE & GRID SETTINGS ---
 let ui = {
   isMobile: false,
   sidebarW: 180,
   margin: 50,
   smallSize: 18,
   bigSize: 54,
-  // Font Sizes
   fPercent: 12,
   fLabel: 10,
   fNav: 16,
@@ -65,18 +70,22 @@ function preload() {
   homeImg = loadImage("house.png");
   soundOnImg = loadImage("sound-on.png");
   soundOffImg = loadImage("sound-off.png");
-  clickSound = loadSound("click(edited).wav");
+  clickSound = loadSound("click.wav");
   pulseSound = loadSound("resource-flow.wav");
   progressSound = loadSound("node-bloom.wav");
   completeSound = loadSound("small-triangle-completed.wav");
   sliderUpSound = loadSound("slider-louder(edited).wav");
   sliderDownSound = loadSound("slider-quiter(edited).wav");
-    bgMusic = loadSound("backgroundmy.wav");
-
+  bgMusic = loadSound("backgroundmy.wav");
+  introSound = loadSound("transition-share.wav");
+  hubMatureSound  = loadSound("vertex-activation.wav");
+  navClickSound = loadSound("nav-click.wav"); 
 }
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
+  // I call these functions to ensure that whether the user is on a phone 
+  // or a giant monitor, the network and UI remain perfectly proportional.
   updateUILayout();
   initializeNetwork();
 
@@ -99,10 +108,29 @@ function setup() {
       driftRange: random(40, 80),
     });
   }
+
+  // I use a separate button logic outside the canvas to bridge 
+  // the p5.js artwork with standard HTML navigation elements.
+  let nextBtn = select('#next-btn');
+  if (nextBtn) {
+    nextBtn.mousePressed((e) => {      
+      if (appState === "ART") {
+        if (navClickSound.isLoaded() && !isMuted) navClickSound.play();
+        let footer = select('#dynamic-footer');
+        if (footer) footer.removeClass('show-now'); 
+
+        outputVolume(0, 1.5); 
+        
+         setTimeout(() => {
+           window.location.href = "chau.html";
+         }, 1500);
+      }
+    });
+  }
 }
 
 function updateUILayout() {
-  ui.isMobile = width < 700;
+  ui.isMobile = width < 600;
   ui.smallSize = ui.isMobile ? 12 : 18;
   ui.bigSize = ui.smallSize * 3;
   ui.margin = ui.isMobile ? 25 : 60;
@@ -120,28 +148,31 @@ function updateUILayout() {
   }
 }
 function initializeNetwork() {
+  //I use Vector math and LERP to place "LDC" nodes exactly on the lines between "Hubs."
   nodes = [];
   hubs = [];
   pulses = [];
-
-  // Boundaries & Setup
+  //I calculated leftLimit and rightLimit to ensure the art doesn't overlap my UI. 
+  //On Desktop, I shift the art to the right to leave room for the sidebarW. On Mobile, I use a smaller, symmetrical margin (50px).
   let leftLimit = ui.isMobile ? 50 : ui.sidebarW + 70;
   let rightLimit = ui.isMobile ? width - 50 : width - 100;
   let availableWidth = rightLimit - leftLimit;
+
+  //Instead of using width / 2, I used leftLimit + availableWidth * 0.45. 
+  //This calculates a "visual center" that accounts for the sidebar, keeping the network perfectly balanced even when the UI is visible.
   let centerX = leftLimit + availableWidth * 0.45;
 
+  // I set topY and bottomY as percentages of the height (e.g., height * 0.12). 
+  // This ensures that whether the screen is a tall phone or a wide monitor, the network is always vertically centered.
   let topY = ui.isMobile ? height * 0.22 : height * 0.12;
   let bottomY = ui.isMobile ? height * 0.62 : height * 0.78;
-
-  // Bottom Layer
   let pBottomLeft = createVector(leftLimit, bottomY);
   let pBottomCenter = createVector(centerX, bottomY);
+
+  //By using availableWidth * 0.9, I ensure the network stretches or 
+  //shrinks as the window is resized, maintaining its relative scale.
   let pBottomRight = createVector(leftLimit + availableWidth * 0.9, bottomY);
-
-  // Top Layer
   let pTop = createVector(random(leftLimit + 20, rightLimit - 20), topY);
-
-  // Middle Layer
   let pMidLeft = p5.Vector.lerp(pTop, pBottomLeft, 0.5);
   let pMidRight = p5.Vector.lerp(pTop, pBottomRight, 0.5);
 
@@ -160,7 +191,6 @@ function initializeNetwork() {
     nodes.push(hub);
   });
 
-  // --- INCREASED PATH NODES ---
   let pairs = [
     [0, 1],
     [0, 2],
@@ -177,7 +207,6 @@ function initializeNetwork() {
     let h1 = hubs[pair[0]],
       h2 = hubs[pair[1]];
 
-    // On desktop, we now place TWO nodes along each connection line instead of one
     let nodeSteps = ui.isMobile ? [0.5] : [0.35, 0.65];
 
     nodeSteps.forEach((t) => {
@@ -192,15 +221,11 @@ function initializeNetwork() {
     });
   });
 
-  // --- INCREASED PETAL COUNT ---
-  // Increased from 6 to 9 for desktop
   let count = ui.isMobile ? 3 : 9;
-
   hubs.forEach((h) => {
     for (let i = 0; i < count; i++) {
       let attempts = 0,
         placed = false;
-      // Increased max attempts to 40 to help find space for the higher count
       while (!placed && attempts < 40) {
         let angle = random(TWO_PI);
         let d = min(width, height) * (ui.isMobile ? 0.12 : 0.09);
@@ -222,27 +247,37 @@ function initializeNetwork() {
 function checkOverlap(x, y, size) {
   let leftWall = ui.isMobile ? size + 10 : ui.sidebarW + 20;
 
-  // Keep the safety boundaries the same
   if (x < leftWall || x > width - size - 10 || y < 80 || y > height - 120)
     return true;
 
   for (let n of nodes) {
-    // REDUCED BUFFER: Changed from 25 to 15 to allow higher density
     if (dist(x, y, n.anchor.x, n.anchor.y) < size / 2 + n.size / 2 + 15)
       return true;
   }
   return false;
 }
+
 function draw() {
-  background(4, 6, 12);
-  if (appState === "INTRO") {
-    drawIntro();
-  } else {
+background(4, 6, 12); 
+
+  if (appState === "READY") {
+    drawReadyScreen();
+  } else if (appState === "INTRO") { 
+    drawIntro(); 
+  }
+  else if (appState === "ART") {
+    
     let footer = select("#dynamic-footer");
     if (footer && !footer.hasClass("show-now")) {
       footer.addClass("show-now");
     }
-    
+      if (!artMusicStarted && bgMusic && bgMusic.isLoaded() && getAudioContext().state === 'running') {
+        bgMusic.setVolume(0); 
+        bgMusic.loop();       
+        bgMusic.fade(0.3, 2); 
+        artMusicStarted = true; 
+    }
+
     let instr = select('#instruction-text'); 
 
     if (!hasShownHubInstr && appState === "ART") {
@@ -368,7 +403,6 @@ function drawHUDSlider(x, y, val, label, id, sliderOpacity, horizontal) {
   if (over && appState === "ART") {
     let instr = select('#instruction-text');
     
-    // Check Slider 1 (Generosity)
     if (id === 1 && !hasShownInstr1) {
       instr.html("Slide up the slider to foster the connection between developing and least developed countries.");
       instr.addClass('show-instruction');
@@ -376,7 +410,6 @@ function drawHUDSlider(x, y, val, label, id, sliderOpacity, horizontal) {
       // Auto-hide after 5 seconds
       setTimeout(() => instr.removeClass('show-instruction'), 5000);
     } 
-    // Check Slider 2 (Growth Solutions)
     else if (id === 2 && !hasShownInstr2) {
       instr.html("Move the slider up to encourage developing countries to share more resources.");
       instr.addClass('show-instruction');
@@ -386,13 +419,16 @@ function drawHUDSlider(x, y, val, label, id, sliderOpacity, horizontal) {
   }
   
   if (mouseIsPressed && over) activeSlider = id;
-
+  // I designed these sliders to "snap" to 10% increments. I use map() to 
+  // translate mouse movement into a clean 0-1 value for the simulation.
   if (activeSlider === id) {
     let prevVal = val;
     let rawVal = horizontal
       ? map(mouseX, x - len / 2, x + len / 2, 0, 1)
       : map(mouseY, y + 100, y - 100, 0, 1);
     let snappedVal = round(constrain(rawVal, 0, 1) * 10) / 10;
+
+    // I trigger audio feedback only when the slider moves to a new 10% notch.
     if (snappedVal > prevVal && sliderUpSound.isLoaded()) sliderUpSound.play();
     if (snappedVal < prevVal && sliderDownSound.isLoaded())
       sliderDownSound.play();
@@ -407,7 +443,7 @@ function drawHUDSlider(x, y, val, label, id, sliderOpacity, horizontal) {
 
   if (horizontal) {
     textAlign(LEFT, CENTER);
-    drawingContext.font = `500 ${ui.fLabel}px mulish-variable, sans-serif`; // Changed to 700
+    drawingContext.font = `500 ${ui.fLabel}px mulish-variable, sans-serif`; 
     fill(255);
     text(label, -len / 2, -10);
 
@@ -475,9 +511,12 @@ class Node {
     this.colorLerp = 0.0;
     this.parentHub = null;
     this.isActiveSharing = false;
+    this.hasPlayedMatureSound = false;
   }
 
   update() {
+    // I use Perlin Noise instead of random() here because it creates a smooth, 
+    // "breathing" effect that makes the network feel alive.
     let jitter = this.isPowered ? 1.0 : 3.0;
     this.pos.x =
       this.anchor.x + map(noise(this.noiseOffsetX), 0, 1, -jitter, jitter);
@@ -487,9 +526,20 @@ class Node {
     this.noiseOffsetY += 0.01;
 
     if (this.type === "hub") {
+      // I check if every LDC connected to this hub is powered. If they are, 
+      // the hub becomes "Fully Matured," representing a successful development cycle.
       let myChildren = nodes.filter((n) => n.parentHub === this);
-      this.isFullyMatured =
-        myChildren.length > 0 && myChildren.every((c) => c.isPowered);
+       let maturedNow = myChildren.length > 0 && myChildren.every((c) => c.isPowered);
+      
+      if (maturedNow && !this.hasPlayedMatureSound) {
+      if (hubMatureSound && hubMatureSound.isLoaded() && !isMuted) {
+        hubMatureSound.setVolume(0.6); 
+        hubMatureSound.play();
+      }
+      this.hasPlayedMatureSound = true; 
+    }
+
+      this.isFullyMatured = maturedNow;
     }
     if (this.isPowered) {
       this.powerLevel = lerp(this.powerLevel, 1, 0.05);
@@ -498,10 +548,12 @@ class Node {
   }
 
   receiveEnergy(amount) {
+     // I simulate resource absorption here. When a pulse hits, I increase 
+    // progress until the node "blooms" and changes its visual state.
     if (this.completionProgress < 1.0) {
       this.completionProgress += amount;
       if (progressSound.isLoaded()) {
-        let progVol = lerp(0.6, 0.3, pow(sliderSpeed, 1.5));
+        let progVol = lerp(1, 0.5, pow(sliderSpeed, 1.5));
         progressSound.setVolume(progVol);
     
         if (!progressSound.isPlaying()) {
@@ -565,8 +617,6 @@ class Node {
       lerp(p1.y, p2.y, max(this.completionProgress, 0.001))
     );
 
-    // --- VERTEX DOTS OPACITY ---
-    // Apply the same alphaVal to the white dots at the corners
     fill(255, alphaVal);
     noStroke();
     let ds = this.isPowered ? (ui.isMobile ? 3 : 5) : ui.isMobile ? 1.5 : 2.5;
@@ -577,13 +627,11 @@ class Node {
   }
 
   display() {
-    // Only draw the aura if it's an active sharing hub or a powered small node
     if (this.type === "hub" && !this.isActiveSharing) return;
 
     if (this.isPowered || this.isActiveSharing) {
       let nodeColor = this.type === "hub" ? color("#2FE197") : color("#B5FCB5");
 
-      // EFFECT: Active sharing aura is much larger (size * 2.5)
       let auraMult = this.type === "hub" && this.isActiveSharing ? 1.8 : 1.2;
       let currentRadius = this.size * auraMult;
 
@@ -596,7 +644,6 @@ class Node {
         currentRadius
       );
 
-      // EFFECT: Active sharing glow is clearer (0.4 opacity)
       let glowAlpha =
         this.type === "hub" && this.isActiveSharing
           ? 0.4
@@ -619,7 +666,7 @@ class Node {
   powerUp() {
     this.isPowered = true;
     if (completeSound && completeSound.isLoaded()) {
-      let compVol = lerp(0.5, 0.3, sliderSpeed);
+      let compVol = lerp(1, 0.5, sliderSpeed);
       completeSound.setVolume(compVol);
       
       let baseRate = this.type === "hub" ? 0.8 : 1.2;
@@ -678,7 +725,8 @@ function manageHubActivity() {
 }
 
 function autoTriggerPulses() {
-  // Speed/Frequency calculation
+  // I use the 'Generosity' slider value to mathematically determine the 
+  // frame-rate of the resource flow. Higher generosity = more frequent pulses.
   let triggerInterval = map(pow(sliderSpeed, 2), 0, 1, 150, 5);
 
   if (frameCount % max(1, floor(triggerInterval)) === 0) {
@@ -687,12 +735,11 @@ function autoTriggerPulses() {
     if (activeHubs.length > 0) {
       let randomHub = random(activeHubs);
 
-      // --- HIGH-FIDELITY AUDIO CLEANUP ---
       if (pulseSound.isLoaded()) {
         let vol = lerp(0.6, 0.3, pow(sliderSpeed, 2));
         pulseSound.setVolume(vol);
 
-        let pitch = map(sliderSpeed, 0, 1, 0.9, 1.4) + random(-0.3, 0.3);
+        let pitch = map(sliderSpeed, 0, 1, 0.9, 1.4) + random(-0.3, 0.3);//I randomize the pitch to get an interesting output.
         pulseSound.rate(pitch);
         pulseSound.pan(random(-0.6, 0.6));
         if (sliderSpeed > 0.7) {
@@ -702,7 +749,6 @@ function autoTriggerPulses() {
         }
       }
 
-      // --- PULSE VISUAL GENERATION ---
       let myPetals = nodes.filter((n) => n.parentHub === randomHub);
       if (myPetals.length > 0) {
         let qty = floor(map(sliderStrength, 0, 1, 1, myPetals.length));
@@ -716,16 +762,57 @@ function autoTriggerPulses() {
   }
 }
 
+function drawReadyScreen() {
+  let isMobile = width < 600; 
+  let fontSize = isMobile ? 32 : 80;
+
+  textFont("new-science-extended");
+  textSize(fontSize);
+  textStyle(BOLD);
+  drawingContext.font = `700 ${fontSize}px new-science-extended, serif`;
+
+  fill(255, 50); 
+
+  if (isMobile) {
+    let txtStage = "STAGE 1: ";
+    let topWidth = textWidth(txtStage);
+    let startX = width / 2 - topWidth / 2;
+    
+    textAlign(LEFT, CENTER);
+    text(txtStage, startX, height / 2 - 25);
+    
+    textAlign(CENTER, CENTER);
+    text("PROVIDE", width / 2, height / 2 + 25);
+  } else {
+    textAlign(CENTER, CENTER);
+    text("STAGE 1: PROVIDE", width / 2, height / 2);
+  }
+
+  textAlign(CENTER, CENTER);
+  textFont("mulish-variable");
+  textSize(isMobile ? 14 : 18);
+  fill(255, 150 + sin(frameCount * 0.1) * 50); 
+  text("(Click anywhere to allow sounds)", width / 2, height / 2 + 80);
+}
+
 function drawIntro() {
-  push();
+  if (introSound && introSound.isLoaded() && !hasIntroSoundPlayed) {
+      introSound.setVolume(0.5);
+      
+      setTimeout(() => {
+          introSound.play(); 
+      }, 500);
+      
+      hasIntroSoundPlayed = true; 
+  }
 
   let isMobile = width < 600;
   let fontSize = isMobile ? 32 : 80;
 
-  textFont("new-spirit");
+  textFont("new-science-extended");
   textSize(fontSize);
   textStyle(BOLD);
-  drawingContext.font = `700 ${fontSize}px new-spirit, serif`;
+  drawingContext.font = `700 ${fontSize}px new-science-extended, sans-serif`;
   noStroke();
 
   let txtStage = "STAGE ";
@@ -783,6 +870,10 @@ function drawIntro() {
       introAlpha -= 7;
       morphAlpha = introAlpha;
       if (introAlpha <= 0) appState = "ART";
+          if (introSound && introSound.isPlaying()) {
+              introSound.fade(0, 1); 
+              setTimeout(() => introSound.stop(), 1000);
+          }
     }
   }
 }
@@ -836,16 +927,27 @@ function drawSoftCircle(x, y, r, c) {
   circle(x, y, r * 2);
 }
 
-function mousePressed() {
+function mousePressed(event) {
+  if (event && event.target && event.target.closest('#next-btn')) {
+    return; 
+  }
+
+  if (appState === "READY") {
+    userStartAudio();
+    appState = "INTRO"; 
+    return;
+  }
+  
   if (getAudioContext().state !== "running") {
     userStartAudio();
   }
 if (bgMusic && bgMusic.isLoaded() && !bgMusic.isPlaying()) {
-    bgMusic.setVolume(0.3); // Set this low so it doesn't overpower your sound effects
-    bgMusic.loop();         // .loop() instead of .play() so it repeats forever
+    bgMusic.setVolume(0.3); 
+    bgMusic.loop();         
   }
-  
+
   if (soundHover) {
+    if (navClickSound.isLoaded() && !isMuted) navClickSound.play();
     isMuted = !isMuted;
     if (isMuted) outputVolume(0);
     else outputVolume(1);
@@ -853,7 +955,20 @@ if (bgMusic && bgMusic.isLoaded() && !bgMusic.isPlaying()) {
   }
 
   if (clickSound.isLoaded() && !isMuted) clickSound.play();
-  if (homeHover) window.location.href = "index.html";
+if (homeHover) {
+    if (!isNavigatingHome) {
+      isNavigatingHome = true;
+      if (navClickSound.isLoaded() && !isMuted) navClickSound.play();
+      if (bgMusic && bgMusic.isPlaying()) bgMusic.fade(0, 1);
+      if (introSound && introSound.isPlaying()) introSound.fade(0, 1);
+      
+      setTimeout(() => {
+        window.location.href = "index.html"; 
+      }, 1000);
+    }
+    return; 
+  }
+  if (clickSound.isLoaded() && !isMuted) clickSound.play();
 }
 
 function mouseReleased() {
@@ -861,6 +976,8 @@ function mouseReleased() {
 }
 
 class RippleFlow {
+  // I designed this class to act like a "Comet." to indicate the quantity of resources shared by developing countries.The higher the “growth solution” slider is, the greater the quantity of resources being shared.
+  // It uses LERP to move from a source to a target over a series of frames.
   constructor(start, target, strength) {
     this.startPos = createVector(start.pos.x, start.pos.y);
     this.target = target;
@@ -881,36 +998,23 @@ class RippleFlow {
   display() {
     push();
     noStroke();
-
-    // 1. Determine how many "segments" the pulse has based on slider
-    // Low strength = 1 segment, High strength = up to 5 segments
     let segments = floor(map(this.strength, 0, 1, 1, 5));
-
-    // 2. Determine brightness/opacity
-    // Low strength = pale (100), High strength = bright (255)
     let baseAlpha = map(this.strength, 0, 1, 80, 255);
 
-    // 3. Draw the pulse segments (The Comet Tail)
     for (let i = 0; i < segments; i++) {
-      // Each segment is slightly behind the one before it
       let offset = i * 0.02;
       let currentProg = max(0, this.progress - offset);
 
-      // Calculate position on the path
       let p = p5.Vector.lerp(this.startPos, this.target.pos, currentProg);
-
-      // Calculate visual properties for each segment
       // The lead segment (i=0) is largest and brightest
       let sizeMult = map(i, 0, segments, 1, 0.4);
       let alphaMult = map(i, 0, segments, 1, 0.2);
       let pulseSize = (ui.isMobile ? 3 : 6) * sizeMult;
 
-      // If strength is high, make the lead circle glow green
       if (this.strength > 0.7 && i === 0) {
-        fill(255); // Bright Green lead
-        // Optional: add a tiny bit of glow
+        fill(255);
       } else {
-        fill(255, baseAlpha * alphaMult); // Pale white tail
+        fill(255, baseAlpha * alphaMult); 
         drawingContext.shadowBlur = 0;
       }
 
